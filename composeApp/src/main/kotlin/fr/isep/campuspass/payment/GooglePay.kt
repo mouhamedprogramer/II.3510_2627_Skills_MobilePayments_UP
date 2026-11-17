@@ -50,14 +50,15 @@ object GooglePayConfig {
 
     /** Full request for an amount in euro cents. */
     fun paymentDataRequest(totalCents: Long): JSONObject {
-        // TODO(Exercise 4): build the PaymentDataRequest JSON.
-        //  Start from a copy of baseRequest, then add:
-        //   - "allowedPaymentMethods": a JSONArray containing cardPaymentMethod()
-        //   - "transactionInfo": totalPrice (String "35.00" built from totalCents), totalPriceStatus "FINAL",
-        //                        currencyCode "EUR", countryCode "FR"
-        //   - "merchantInfo": { "merchantName": "CampusPass (demo)" }
-        //  Docs: https://developers.google.com/pay/api/android/reference/request-objects#PaymentDataRequest
+        val transactionInfo = JSONObject()
+            .put("totalPrice", "${totalCents / 100}.${(totalCents % 100).toString().padStart(2, '0')}")
+            .put("totalPriceStatus", "FINAL")
+            .put("currencyCode", "EUR")
+            .put("countryCode", "FR")
         return JSONObject(baseRequest.toString())
+            .put("allowedPaymentMethods", JSONArray().put(cardPaymentMethod()))
+            .put("transactionInfo", transactionInfo)
+            .put("merchantInfo", JSONObject().put("merchantName", "CampusPass (demo)"))
     }
 
     /** Extracts the payment token that would be sent to the payment provider's server. */

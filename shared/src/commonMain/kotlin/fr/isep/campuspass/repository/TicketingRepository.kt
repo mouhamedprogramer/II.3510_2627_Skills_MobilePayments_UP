@@ -118,8 +118,7 @@ class InMemoryTicketingRepository(
             tx.userId != user.id -> "Only the buyer can request a refund."
             tx.status == TransactionStatus.REFUNDED -> "This order has already been refunded."
             txTickets.any { it.status == TicketStatus.USED } -> "A ticket of this order has already been used."
-            // TODO(Exercise 6, bonus): refuse the refund less than REFUND_DEADLINE (48 h) before event.startInstant()
-            //  with the message "Refunds close 48 h before the event." (see RefundTest).
+            time.now() > event.startInstant() - REFUND_DEADLINE -> "Refunds close 48 h before the event."
             else -> null
         }
         if (error != null) return failure(error)
@@ -132,13 +131,20 @@ class InMemoryTicketingRepository(
     }
 
     override fun validate(code: String, eventId: Int): ScanResult {
-        // TODO(Exercise 3b): validate a scanned ticket at the entrance (single use!).
-        //  1. signer.verify(code) — null → ScanResult.Invalid("Forged or unreadable QR code.")
-        //  2. find the ticket in _tickets.value — not found → ScanResult.Invalid("Unknown ticket.")
-        //  3. ticket.eventId != eventId → ScanResult.WrongEvent(ticket, events.event(ticket.eventId))
-        //  4. REFUNDED → ScanResult.Refunded(ticket) ; USED → ScanResult.AlreadyUsed(ticket, ticket.scannedAt ?: time.now())
-        //  5. VALID → copy it with status = USED and scannedAt = time.now(), replace it in _tickets, return ScanResult.Valid
-        return ScanResult.Invalid("TODO Exercise 3: validation is not implemented yet")
+        val signed = signer.verify(code) ?: return ScanResult.Invalid("Forged or unreadable QR code.")
+        val ticket = _tickets.value.firstOrNull { it.id == signed.ticketId }
+            ?: return ScanResult.Invalid("Unknown ticket.")
+        if (ticket.eventId != eventId) return ScanResult.WrongEvent(ticket, events.event(ticket.eventId))
+        val event = events.event(eventId) ?: return ScanResult.Invalid("Unknown event.")
+        return when (ticket.status) {
+            TicketStatus.REFUNDED -> ScanResult.Refunded(ticket)
+            TicketStatus.USED -> ScanResult.AlreadyUsed(ticket, ticket.scannedAt ?: time.now())
+            TicketStatus.VALID -> {
+                val used = ticket.copy(status = TicketStatus.USED, scannedAt = time.now())
+                _tickets.value = _tickets.value.map { if (it.id == used.id) used else it }
+                ScanResult.Valid(used, event)
+            }
+        }
     }
 
     private fun newId(prefix: String): String {

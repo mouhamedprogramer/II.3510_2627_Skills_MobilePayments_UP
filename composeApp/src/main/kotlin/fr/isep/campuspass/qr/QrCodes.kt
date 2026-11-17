@@ -20,13 +20,15 @@ object QrCodes {
 
     /** Draws [content] as a square QR code bitmap of [sizePx] pixels. */
     fun generate(content: String, sizePx: Int = 720): Bitmap {
-        // TODO(Exercise 1): draw the QR code of [content] with ZXing.
-        //  1. Create the hints: error correction level M and a margin of 1.
-        //  2. val matrix = QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, sizePx, sizePx, hints)
-        //  3. Build an IntArray of matrix.width * matrix.height pixels: Color.BLACK if matrix[x, y] is true, else Color.WHITE.
-        //  4. return Bitmap.createBitmap(pixels, matrix.width, matrix.height, Bitmap.Config.ARGB_8888)
-        // Placeholder: a grey square, so that the app still runs.
-        return Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888).apply { eraseColor(Color.LTGRAY) }
+        val hints = mapOf(
+            EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.M, // ~15 % of the code can be damaged
+            EncodeHintType.MARGIN to 1,
+        )
+        val matrix = QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, sizePx, sizePx, hints)
+        val pixels = IntArray(matrix.width * matrix.height) { i ->
+            if (matrix[i % matrix.width, i / matrix.width]) Color.BLACK else Color.WHITE
+        }
+        return Bitmap.createBitmap(pixels, matrix.width, matrix.height, Bitmap.Config.ARGB_8888)
     }
 
     /** Reads a QR code from a picture (e.g. a screenshot of a ticket). Returns null if none is found. */

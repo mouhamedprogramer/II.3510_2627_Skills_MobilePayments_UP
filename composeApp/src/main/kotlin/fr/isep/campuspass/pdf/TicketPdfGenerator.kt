@@ -56,12 +56,26 @@ object TicketPdfGenerator {
     }
 
     private fun drawTicket(canvas: Canvas, ticket: Ticket, event: Event, number: Int, total: Int) {
-        header(canvas, "E-TICKET  ·   / ")
-        // TODO(Exercise 5, bonus): draw the ticket page under the header.
-        //  - the event title (paint(NAVY, 24f, bold = true)), formatDateTime(event.startsAt), event.venue
-        //  - the QR code: QrCodes.generate(ticket.code, 600) drawn with canvas.drawBitmap(qr, null, RectF(...), null)
-        //  - the holder name and the ticket id, centred under the QR code
-        canvas.drawText("TODO Exercise 5", 40f, 200f, paint(CORAL, 24f, bold = true))
+        header(canvas, "E-TICKET  ·  $number / $total")
+        var y = 180f
+        canvas.drawText(event.title, 40f, y, paint(NAVY, 24f, bold = true)); y += 34f
+        canvas.drawText(formatDateTime(event.startsAt), 40f, y, paint(GREY, 15f)); y += 22f
+        canvas.drawText(event.venue, 40f, y, paint(GREY, 15f)); y += 22f
+        canvas.drawText("Organised by ${event.organizer}", 40f, y, paint(GREY, 15f)); y += 40f
+
+        val qr = QrCodes.generate(ticket.code, 600)
+        val qrSize = 300f
+        val left = (WIDTH - qrSize) / 2
+        canvas.drawRoundRect(RectF(left - 16, y - 16, left + qrSize + 16, y + qrSize + 16), 16f, 16f, paint(0xFFF2F1F7.toInt(), 0f))
+        canvas.drawBitmap(qr, null, RectF(left, y, left + qrSize, y + qrSize), null)
+        y += qrSize + 50f
+
+        val center = paint(NAVY, 16f, bold = true).apply { textAlign = Paint.Align.CENTER }
+        canvas.drawText(ticket.holderName, WIDTH / 2f, y, center); y += 22f
+        canvas.drawText("Ticket ${ticket.id}  ·  General admission", WIDTH / 2f, y, paint(GREY, 13f).apply { textAlign = Paint.Align.CENTER })
+        y += 60f
+        canvas.drawText("Single-use ticket: it is invalidated as soon as it is scanned at the entrance.", 40f, y, paint(GREY, 11f))
+        canvas.drawText("The QR code is cryptographically signed. Do not share it.", 40f, y + 16f, paint(GREY, 11f))
     }
 
     private fun drawReceipt(canvas: Canvas, tx: Transaction, event: Event, buyer: String) {

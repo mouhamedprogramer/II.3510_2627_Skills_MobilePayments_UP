@@ -18,12 +18,12 @@ class TicketSigner(private val secret: String) {
 
     /** Returns the decoded content if the code is well-formed AND correctly signed, null otherwise. */
     fun verify(code: String): SignedTicket? {
-        // TODO(Exercise 3a): decode and verify a QR code.
-        //  - split the trimmed code on ':' → it must have 4 parts and start with PREFIX
-        //  - parts[2] must be an Int (the event id)
-        //  - recompute signature(ticketId, eventId) and compare it with parts[3] using constantTimeEquals
-        //  - return SignedTicket(ticketId, eventId) if everything matches, null otherwise
-        return null
+        val parts = code.trim().split(":")
+        if (parts.size != 4 || parts[0] != PREFIX) return null
+        val ticketId = parts[1]
+        val eventId = parts[2].toIntOrNull() ?: return null
+        val expected = signature(ticketId, eventId)
+        return if (constantTimeEquals(expected, parts[3])) SignedTicket(ticketId, eventId) else null
     }
 
     private fun signature(ticketId: String, eventId: Int): String =

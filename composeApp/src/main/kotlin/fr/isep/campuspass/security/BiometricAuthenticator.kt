@@ -32,14 +32,21 @@ class BiometricAuthenticator(private val activity: FragmentActivity) {
         onSuccess: () -> Unit,
         onError: (String) -> Unit,
     ) {
-        // TODO(Exercise 2): show the system biometric prompt.
-        //  1. Create a BiometricPrompt(activity, ContextCompat.getMainExecutor(activity), callback)
-        //     where callback is an object : BiometricPrompt.AuthenticationCallback() that calls
-        //     onSuccess() in onAuthenticationSucceeded and onError(errString.toString()) in onAuthenticationError.
-        //  2. Build a BiometricPrompt.PromptInfo with setTitle(title), setSubtitle(subtitle) and
-        //     setAllowedAuthenticators(authenticators). Below Android 11 (API 30) a negative button is mandatory:
-        //     setNegativeButtonText("Cancel").
-        //  3. prompt.authenticate(info)
-        onError("TODO Exercise 2: biometric confirmation is not implemented yet")
+        val prompt = BiometricPrompt(
+            activity,
+            ContextCompat.getMainExecutor(activity),
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) = onSuccess()
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) = onError(errString.toString())
+                // onAuthenticationFailed = one wrong finger: the system prompt stays open and lets the user retry.
+            },
+        )
+        val info = BiometricPrompt.PromptInfo.Builder()
+            .setTitle(title)
+            .setSubtitle(subtitle)
+            .setAllowedAuthenticators(authenticators)
+            .apply { if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) setNegativeButtonText("Cancel") }
+            .build()
+        prompt.authenticate(info)
     }
 }
